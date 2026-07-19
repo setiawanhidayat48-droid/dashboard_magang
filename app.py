@@ -77,6 +77,34 @@ with tab2:
         st.plotly_chart(fig_kategori, use_container_width=True)
 
     st.markdown("---")
+    
+    # --- GRAFIK BARU: SITE ID vs NILAI BOQ ---
+    st.subheader("Analisis Detail per Site ID")
+    
+    # Menghapus baris yang tidak memiliki Site ID agar grafik bersih
+    df_site = df_selection.dropna(subset=["Site ID"])
+    
+    # Melakukan agregasi (SUM) Nilai BOQ berdasarkan Site ID
+    boq_by_site = df_site.groupby("Site ID")["Nilai BOQ"].sum().reset_index()
+    
+    # Mengurutkan dari nilai terbesar ke terkecil agar grafik lebih mudah dibaca
+    boq_by_site = boq_by_site.sort_values(by="Nilai BOQ", ascending=False)
+    
+    fig_site = px.bar(
+        boq_by_site, 
+        x="Site ID", 
+        y="Nilai BOQ", 
+        title="Total Nilai BOQ berdasarkan Site ID", 
+        template="plotly_white",
+        text_auto='.2s' # Menambahkan angka singkatan otomatis di atas batang grafik (misal: 25M)
+    )
+    # Menyesuaikan kemiringan teks sumbu X agar nama Site ID tidak bertabrakan
+    fig_site.update_layout(xaxis_tickangle=-45)
+    
+    st.plotly_chart(fig_site, use_container_width=True)
+    
+    st.markdown("---")
+    
     st.subheader("Tabel Data Lengkap")
     # Tabel interaktif penuh
     st.dataframe(df_selection, use_container_width=True)
