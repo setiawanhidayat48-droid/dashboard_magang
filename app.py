@@ -12,7 +12,7 @@ st.markdown("---")
 @st.cache_data(ttl=60) 
 def load_data():
     # Ini adalah Spreadsheet ID asli milikmu
-    sheet_id = "1UIWChBdk8Ny-QXBHnWccHFdkDP5P0Ss_jleu9H_0CK0" 
+    sheet_id = "1UIWChBdk8Ny-QXBHnWccHFdkDP5P0Ss_jIeu9H_0CK0" 
     
     # URL ajaib untuk mengubah Google Sheets menjadi format CSV
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
