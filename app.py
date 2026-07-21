@@ -8,9 +8,17 @@ st.title("📊 Dashboard Laporan Pekerjaan (BOQ)")
 st.markdown("---")
 
 # 2. Memuat Data Excel
-@st.cache_data
+# Tambahkan ttl=60 agar dashboard mengecek data baru ke Google Sheets setiap 60 detik
+@st.cache_data(ttl=60) 
 def load_data():
-    df = pd.read_excel("data anak magang.xlsx")
+    # Ini adalah Spreadsheet ID asli milikmu
+    sheet_id = "1UIWChBdk8Ny-QXBHnWccHFdkDP5P0Ss_jleu9H_0CK0" 
+    
+    # URL ajaib untuk mengubah Google Sheets menjadi format CSV
+    url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
+    
+    # Membaca data langsung dari internet
+    df = pd.read_csv(url)
     df = df.dropna(subset=['Nilai BOQ'])
     return df
 
