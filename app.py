@@ -11,14 +11,19 @@ st.markdown("---")
 # Tambahkan ttl=60 agar dashboard mengecek data baru ke Google Sheets setiap 60 detik
 @st.cache_data(ttl=60) 
 def load_data():
-    # Ini adalah Spreadsheet ID asli milikmu
     sheet_id = "1UIWChBdk8Ny-QXBHnWccHFdkDP5P0Ss_jIeu9H_0CK0" 
-    
-    # URL ajaib untuk mengubah Google Sheets menjadi format CSV
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
     
     # Membaca data langsung dari internet
     df = pd.read_csv(url)
+    
+    # --- SISTEM PEMBERSIH DATA (AUTO-CLEANING) ---
+    # 1. Ubah paksa jadi teks, lalu hapus semua karakter selain angka (seperti titik, koma, spasi, atau huruf Rp)
+    df["Nilai BOQ"] = df["Nilai BOQ"].astype(str).str.replace(r'\D', '', regex=True)
+    # 2. Kembalikan tipe datanya menjadi angka murni (numeric)
+    df["Nilai BOQ"] = pd.to_numeric(df["Nilai BOQ"], errors='coerce')
+    
+    # Buang baris yang Nilai BOQ-nya kosong
     df = df.dropna(subset=['Nilai BOQ'])
     return df
 
