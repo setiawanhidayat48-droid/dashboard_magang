@@ -72,32 +72,48 @@ with tab1:
         boq_by_dept = df_selection.groupby("Departemen")["Nilai BOQ"].sum().reset_index()
         fig_dept = px.bar(boq_by_dept, x="Departemen", y="Nilai BOQ", title="Total Nilai BOQ per Departemen", color="Departemen")
         
-        # 1. TAMBAHAN UTAMA: Menangkap event klik menggunakan on_select="rerun"
+        # Interaktif Bar Chart
         klik_grafik = st.plotly_chart(fig_dept, use_container_width=True, on_select="rerun")
         
     with kanan:
         status_counts = df_selection["Status Kerjaan"].value_counts().reset_index()
         status_counts.columns = ['Status Kerjaan', 'Jumlah']
         fig_status = px.pie(status_counts, names="Status Kerjaan", values="Jumlah", title="Distribusi Status Pekerjaan", hole=0.4)
-        st.plotly_chart(fig_status, use_container_width=True)
+        
+        # Interaktif Pie Chart (TAMBAHAN BARU)
+        klik_pie = st.plotly_chart(fig_status, use_container_width=True, on_select="rerun")
 
-    # 2. LOGIKA INTERAKTIF: Membaca data yang diklik dan memunculkan tabel
-    # Memeriksa apakah ada batang grafik yang sedang diklik oleh pengguna
+    # --- LOGIKA INTERAKTIF (MUNCUL DI BAWAH GRAFIK) ---
+    
+    # 1. Jika Bar Chart (Departemen) diklik
     if "selection" in klik_grafik and len(klik_grafik["selection"]["points"]) > 0:
-        # Mengambil nama departemen dari sumbu X yang diklik (misal: "Sulawesi")
         dept_terpilih = klik_grafik["selection"]["points"][0]["x"]
         
         st.markdown("---")
         st.markdown(f"### 🎯 Detail Area: **{dept_terpilih}**")
         
-        # Memfilter data hanya untuk departemen yang diklik
         df_klik = df_selection[df_selection["Departemen"] == dept_terpilih]
-        
-        # Menampilkan tabel dengan kolom yang sudah dilengkapi Invoice
         kolom_penting = ["Q", "Site ID", "Mitra", "Deskripsi pekerjaan", "Status Kerjaan", "Invoice", "Nilai BOQ"]
         kolom_tersedia = [col for col in kolom_penting if col in df_klik.columns]
-        
         st.dataframe(df_klik[kolom_tersedia], use_container_width=True, hide_index=True)
+
+    # 2. Jika Pie Chart (Status Kerjaan) diklik (TAMBAHAN BARU)
+    if "selection" in klik_pie and len(klik_pie["selection"]["points"]) > 0:
+        # Plotly Pie Chart menyimpan nama potongan di dalam key 'label'
+        status_terpilih = klik_pie["selection"]["points"][0]["label"]
+        
+        st.markdown("---")
+        st.markdown(f"### 📋 Daftar Pekerjaan dengan Status: **{status_terpilih}**")
+        st.markdown(f"Berikut adalah rincian departemen dan proyek yang saat ini berstatus **{status_terpilih}**:")
+        
+        # Memfilter data khusus untuk status yang diklik (Done / NY)
+        df_status = df_selection[df_selection["Status Kerjaan"] == status_terpilih]
+        
+        # Menambahkan kolom "Departemen" agar audiens tahu proyek ini ada di area mana
+        kolom_status = ["Departemen", "Q", "Site ID", "Mitra", "Deskripsi pekerjaan", "Invoice", "Nilai BOQ"]
+        kolom_tersedia_status = [col for col in kolom_status if col in df_status.columns]
+        
+        st.dataframe(df_status[kolom_tersedia_status], use_container_width=True, hide_index=True)
 
 # --- ISI TAB 2: DETAIL ---
 with tab2:
