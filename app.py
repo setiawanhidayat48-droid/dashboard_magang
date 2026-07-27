@@ -10,7 +10,7 @@ st.markdown("---")
 # 2. Memuat Data dari Google Sheets
 @st.cache_data(ttl=60) 
 def load_data():
-    sheet_id = "1UIWChBdk8Ny-QXBHnWccHFdkDP5P0Ss_jIeu9H_0CK" 
+    sheet_id = "1UIWChBdk8Ny-QXBHnWccHFdkDP5P0Ss_jIeu9H_0CK0" 
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
     
     df = pd.read_csv(url)
