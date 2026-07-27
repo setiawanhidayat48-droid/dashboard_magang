@@ -2,37 +2,36 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# 1. Konfigurasi Halaman Dashboard
+# 1. Konfigurasi Halaman
 st.set_page_config(page_title="Dashboard Pekerjaan Magang", page_icon="📊", layout="wide")
 st.title("📊 Dashboard Laporan Pekerjaan (BOQ)")
 st.markdown("---")
 
-# 2. Memuat Data Excel
-# Tambahkan ttl=60 agar dashboard mengecek data baru ke Google Sheets setiap 60 detik
+# 2. Memuat Data dari Google Sheets
 @st.cache_data(ttl=60) 
 def load_data():
-    sheet_id = "1UIWChBdk8Ny-QXBHnWccHFdkDP5P0Ss_jIeu9H_0CK0" 
+    sheet_id = "1UIWChBdk8Ny-QXBHnWccHFdkDP5P0Ss_jleu9H_0CK0" 
     url = f"https://docs.google.com/spreadsheets/d/{sheet_id}/export?format=csv"
     
-    # Membaca data langsung dari internet
     df = pd.read_csv(url)
     
-    # --- SISTEM PEMBERSIH DATA (AUTO-CLEANING) ---
-    # 1. Ubah paksa jadi teks, lalu hapus semua karakter selain angka (seperti titik, koma, spasi, atau huruf Rp)
+    # Auto-Cleaning Nilai BOQ
     df["Nilai BOQ"] = df["Nilai BOQ"].astype(str).str.replace(r'\D', '', regex=True)
-    # 2. Kembalikan tipe datanya menjadi angka murni (numeric)
     df["Nilai BOQ"] = pd.to_numeric(df["Nilai BOQ"], errors='coerce')
-    
-    # Buang baris yang Nilai BOQ-nya kosong
     df = df.dropna(subset=['Nilai BOQ'])
+    
+    # Mengatasi sel kosong (blank) di Excel
+    df["Departemen"] = df["Departemen"].fillna("Belum Ditentukan")
+    df["Mitra"] = df["Mitra"].fillna("Belum Ditentukan")
+    
     return df
 
 df = load_data()
 
-# 3. Sidebar Filter
-st.sidebar.header("Filter Data")
-departemen = st.sidebar.multiselect("Pilih Departemen:", options=df["Departemen"].dropna().unique(), default=df["Departemen"].dropna().unique())
-mitra = st.sidebar.multiselect("Pilih Mitra:", options=df["Mitra"].dropna().unique(), default=df["Mitra"].dropna().unique())
+# 3. Sidebar Filter Utama (Mengubah seluruh halaman)
+st.sidebar.header("Filter Global")
+departemen = st.sidebar.multiselect("Pilih Departemen:", options=df["Departemen"].unique(), default=df["Departemen"].unique())
+mitra = st.sidebar.multiselect("Pilih Mitra:", options=df["Mitra"].unique(), default=df["Mitra"].unique())
 
 df_selection = df.query("Departemen == @departemen & Mitra == @mitra")
 
@@ -40,32 +39,23 @@ if df_selection.empty:
     st.warning("⚠️ Data tidak tersedia berdasarkan filter yang dipilih!")
     st.stop()
 
-# 4. Membuat Sistem Tab (Menu Navigasi)
-tab1, tab2 = st.tabs(["📋 Executive Summary", "🔍 Detail & Analisis Lanjutan"])
+# 4. Membuat Sistem Tab (Ditambah Tab ke-3)
+tab1, tab2, tab3 = st.tabs(["📋 Executive Summary", "🔍 Detail & Analisis Lanjutan", "🏢 Profil Departemen (Search)"])
 
 # --- ISI TAB 1: SUMMARY ---
 with tab1:
     st.subheader("Ringkasan Eksekutif")
-    
-    # Kalkulasi Metrik
-    total_boq = int(df_selection["Nilai BOQ"].sum())
-    total_project = len(df_selection)
-    po_released = len(df_selection[df_selection["PO"] == "Relaesed"])
-    done_projects = len(df_selection[df_selection["Status Kerjaan"] == "Done"])
-
-    # Menampilkan 4 Kolom Angka Ringkasan
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Nilai BOQ", f"Rp {total_boq:,}")
-    col2.metric("Total Proyek", total_project)
-    col3.metric("PO Released", po_released)
-    col4.metric("Proyek Selesai (Done)", done_projects)
+    col1.metric("Total Nilai BOQ", f"Rp {int(df_selection['Nilai BOQ'].sum()):,}")
+    col2.metric("Total Proyek", len(df_selection))
+    col3.metric("PO Released", len(df_selection[df_selection["PO"] == "Relaesed"]))
+    col4.metric("Proyek Selesai (Done)", len(df_selection[df_selection["Status Kerjaan"] == "Done"]))
     st.markdown("---")
     
-    # Grafik Ringkasan
     kiri, kanan = st.columns(2)
     with kiri:
         boq_by_dept = df_selection.groupby("Departemen")["Nilai BOQ"].sum().reset_index()
-        fig_dept = px.bar(boq_by_dept, x="Departemen", y="Nilai BOQ", title="Total Nilai BOQ per Departemen", color="Departemen", template="plotly_white")
+        fig_dept = px.bar(boq_by_dept, x="Departemen", y="Nilai BOQ", title="Total Nilai BOQ per Departemen", color="Departemen")
         st.plotly_chart(fig_dept, use_container_width=True)
     with kanan:
         status_counts = df_selection["Status Kerjaan"].value_counts().reset_index()
@@ -76,48 +66,58 @@ with tab1:
 # --- ISI TAB 2: DETAIL ---
 with tab2:
     st.subheader("Analisis Mitra & Kategori")
-    
-    # Grafik Detail Tambahan
     kiri2, kanan2 = st.columns(2)
     with kiri2:
         boq_by_mitra = df_selection.groupby("Mitra")["Nilai BOQ"].sum().reset_index()
-        fig_mitra = px.bar(boq_by_mitra, x="Mitra", y="Nilai BOQ", title="Nilai BOQ berdasarkan Mitra", color="Mitra", template="plotly_white")
+        fig_mitra = px.bar(boq_by_mitra, x="Mitra", y="Nilai BOQ", title="Nilai BOQ berdasarkan Mitra", color="Mitra")
         st.plotly_chart(fig_mitra, use_container_width=True)
     with kanan2:
-        kategori_counts = df_selection["Kategory"].value_counts().reset_index()
-        kategori_counts.columns = ['Kategori', 'Jumlah']
-        fig_kategori = px.bar(kategori_counts, x="Kategori", y="Jumlah", title="Jumlah Proyek per Kategori", template="plotly_white")
-        st.plotly_chart(fig_kategori, use_container_width=True)
+        if "Kategory" in df_selection.columns:
+            kategori_counts = df_selection["Kategory"].value_counts().reset_index()
+            kategori_counts.columns = ['Kategori', 'Jumlah']
+            fig_kategori = px.bar(kategori_counts, x="Kategori", y="Jumlah", title="Jumlah Proyek per Kategori")
+            st.plotly_chart(fig_kategori, use_container_width=True)
 
     st.markdown("---")
-    
-    # --- GRAFIK BARU: SITE ID vs NILAI BOQ ---
     st.subheader("Analisis Detail per Site ID")
-    
-    # Menghapus baris yang tidak memiliki Site ID agar grafik bersih
     df_site = df_selection.dropna(subset=["Site ID"])
+    if not df_site.empty:
+        boq_by_site = df_site.groupby("Site ID")["Nilai BOQ"].sum().reset_index().sort_values(by="Nilai BOQ", ascending=False)
+        fig_site = px.bar(boq_by_site, x="Site ID", y="Nilai BOQ", title="Total Nilai BOQ berdasarkan Site ID", text_auto='.2s')
+        fig_site.update_layout(xaxis_tickangle=-45)
+        st.plotly_chart(fig_site, use_container_width=True)
+
+# --- ISI TAB 3: PROFIL DEPARTEMEN (FITUR SEARCH) ---
+with tab3:
+    st.subheader("🔍 Pencarian Spesifik Departemen")
+    st.markdown("Ketik nama departemen pada kotak di bawah ini untuk membedah detail informasinya.")
     
-    # Melakukan agregasi (SUM) Nilai BOQ berdasarkan Site ID
-    boq_by_site = df_site.groupby("Site ID")["Nilai BOQ"].sum().reset_index()
+    # Membuat daftar nama departemen
+    list_departemen = df_selection["Departemen"].dropna().unique().tolist()
     
-    # Mengurutkan dari nilai terbesar ke terkecil agar grafik lebih mudah dibaca
-    boq_by_site = boq_by_site.sort_values(by="Nilai BOQ", ascending=False)
+    # Fitur pencarian otomatis
+    pilih_dept = st.selectbox("Cari Departemen:", options=["-- Ketik / Pilih Departemen --"] + list_departemen)
     
-    fig_site = px.bar(
-        boq_by_site, 
-        x="Site ID", 
-        y="Nilai BOQ", 
-        title="Total Nilai BOQ berdasarkan Site ID", 
-        template="plotly_white",
-        text_auto='.2s' # Menambahkan angka singkatan otomatis di atas batang grafik (misal: 25M)
-    )
-    # Menyesuaikan kemiringan teks sumbu X agar nama Site ID tidak bertabrakan
-    fig_site.update_layout(xaxis_tickangle=-45)
-    
-    st.plotly_chart(fig_site, use_container_width=True)
-    
-    st.markdown("---")
-    
-    st.subheader("Tabel Data Lengkap")
-    # Tabel interaktif penuh
-    st.dataframe(df_selection, use_container_width=True)
+    # Jika pengguna sudah memilih sebuah departemen, tampilkan datanya
+    if pilih_dept != "-- Ketik / Pilih Departemen --":
+        st.markdown(f"### 🏢 Detail Area: **{pilih_dept}**")
+        
+        # Saring data HANYA untuk departemen yang dicari
+        df_khusus = df_selection[df_selection["Departemen"] == pilih_dept]
+        
+        # Tampilkan metrik khusus departemen tersebut
+        c1, c2, c3 = st.columns(3)
+        c1.metric(label="Total Proyek di Area Ini", value=len(df_khusus))
+        c2.metric(label="Total Serapan BOQ", value=f"Rp {int(df_khusus['Nilai BOQ'].sum()):,}")
+        
+        # Mencari Mitra yang paling banyak memegang proyek di departemen ini
+        mitra_terbanyak = df_khusus['Mitra'].mode()[0] if not df_khusus['Mitra'].empty else "-"
+        c3.metric(label="Mitra Paling Dominan", value=mitra_terbanyak)
+        
+        st.markdown("#### 📑 Daftar Proyek Berjalan")
+        
+        # Menampilkan tabel bersih khusus departemen ini (menyembunyikan kolom tidak penting)
+        kolom_penting = ["Site ID", "Mitra", "Deskripsi pekerjaan", "Status Kerjaan", "Nilai BOQ"]
+        kolom_tersedia = [col for col in kolom_penting if col in df_khusus.columns]
+        
+        st.dataframe(df_khusus[kolom_tersedia], use_container_width=True, hide_index=True)
