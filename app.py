@@ -83,17 +83,16 @@ with tab1:
         status_counts = df_selection["Status Kerjaan"].value_counts().reset_index()
         status_counts.columns = ['Status Kerjaan', 'Jumlah']
         
-        fig_status = px.bar(status_counts, x="Jumlah", y="Status Kerjaan", orientation='h', 
+        # 1. PERUBAHAN: Menukar X dan Y, lalu menghapus orientation='h'
+        fig_status = px.bar(status_counts, x="Status Kerjaan", y="Jumlah", 
                             title="Distribusi Status Pekerjaan", color="Status Kerjaan")
         
-        # 2. Menghilangkan legend yang memakan tempat agar grafik lebih lebar
         fig_status.update_layout(showlegend=False)
-        
         klik_status = st.plotly_chart(fig_status, use_container_width=True, on_select="rerun")
 
     # --- LOGIKA INTERAKTIF (MUNCUL DI BAWAH GRAFIK) ---
     
-    # 1. Jika Bar Chart (Departemen) diklik
+    # 1. Jika Bar Chart (Departemen) diklik (TIDAK BERUBAH)
     if "selection" in klik_grafik and len(klik_grafik["selection"]["points"]) > 0:
         dept_terpilih = klik_grafik["selection"]["points"][0]["x"]
         
@@ -105,19 +104,17 @@ with tab1:
         kolom_tersedia = [col for col in kolom_penting if col in df_klik.columns]
         st.dataframe(df_klik[kolom_tersedia], use_container_width=True, hide_index=True)
 
-    # 2. Jika Bar Chart (Status Kerjaan) diklik (PERBAIKAN)
+    # 2. Jika Bar Chart (Status Kerjaan) diklik
     if "selection" in klik_status and len(klik_status["selection"]["points"]) > 0:
-        # Karena grafiknya horizontal, nama status sekarang berada di sumbu y
-        status_terpilih = klik_status["selection"]["points"][0]["y"]
+        # 2. PERUBAHAN: Karena grafik sudah vertikal, kita menangkap klik dari sumbu "x"
+        status_terpilih = klik_status["selection"]["points"][0]["x"]
         
         st.markdown("---")
         st.markdown(f"### 📋 Daftar Pekerjaan dengan Status: **{status_terpilih}**")
         st.markdown(f"Berikut adalah rincian departemen dan proyek yang saat ini berstatus **{status_terpilih}**:")
         
-        # Memfilter data khusus untuk status yang diklik (Done / NY)
         df_status = df_selection[df_selection["Status Kerjaan"] == status_terpilih]
         
-        # Menambahkan kolom "Departemen"
         kolom_status = ["Departemen", "Q", "Site ID", "Mitra", "Deskripsi pekerjaan", "Invoice", "Nilai BOQ"]
         kolom_tersedia_status = [col for col in kolom_status if col in df_status.columns]
         
