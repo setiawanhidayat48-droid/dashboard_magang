@@ -71,12 +71,33 @@ with tab1:
     with kiri:
         boq_by_dept = df_selection.groupby("Departemen")["Nilai BOQ"].sum().reset_index()
         fig_dept = px.bar(boq_by_dept, x="Departemen", y="Nilai BOQ", title="Total Nilai BOQ per Departemen", color="Departemen")
-        st.plotly_chart(fig_dept, use_container_width=True)
+        
+        # 1. TAMBAHAN UTAMA: Menangkap event klik menggunakan on_select="rerun"
+        klik_grafik = st.plotly_chart(fig_dept, use_container_width=True, on_select="rerun")
+        
     with kanan:
         status_counts = df_selection["Status Kerjaan"].value_counts().reset_index()
         status_counts.columns = ['Status Kerjaan', 'Jumlah']
         fig_status = px.pie(status_counts, names="Status Kerjaan", values="Jumlah", title="Distribusi Status Pekerjaan", hole=0.4)
         st.plotly_chart(fig_status, use_container_width=True)
+
+    # 2. LOGIKA INTERAKTIF: Membaca data yang diklik dan memunculkan tabel
+    # Memeriksa apakah ada batang grafik yang sedang diklik oleh pengguna
+    if "selection" in klik_grafik and len(klik_grafik["selection"]["points"]) > 0:
+        # Mengambil nama departemen dari sumbu X yang diklik (misal: "Sulawesi")
+        dept_terpilih = klik_grafik["selection"]["points"][0]["x"]
+        
+        st.markdown("---")
+        st.markdown(f"### 🎯 Detail Area: **{dept_terpilih}** *(Hasil Klik Grafik)*")
+        
+        # Memfilter data hanya untuk departemen yang diklik
+        df_klik = df_selection[df_selection["Departemen"] == dept_terpilih]
+        
+        # Menampilkan tabel dengan kolom yang sudah dilengkapi Invoice
+        kolom_penting = ["Q", "Site ID", "Mitra", "Deskripsi pekerjaan", "Status Kerjaan", "Invoice", "Nilai BOQ"]
+        kolom_tersedia = [col for col in kolom_penting if col in df_klik.columns]
+        
+        st.dataframe(df_klik[kolom_tersedia], use_container_width=True, hide_index=True)
 
 # --- ISI TAB 2: DETAIL ---
 with tab2:
