@@ -67,23 +67,28 @@ with tab1:
     col4.metric("Proyek Selesai (Done)", len(df_selection[df_selection["Status Kerjaan"] == "Done"]))
     st.markdown("---")
     
-    kiri, kanan = st.columns(2)
+    # Menambahkan gap="large" agar ada spasi pemisah di antara kedua kolom
+    kiri, kanan = st.columns(2, gap="large")
+    
     with kiri:
         boq_by_dept = df_selection.groupby("Departemen")["Nilai BOQ"].sum().reset_index()
         fig_dept = px.bar(boq_by_dept, x="Departemen", y="Nilai BOQ", title="Total Nilai BOQ per Departemen", color="Departemen")
         
-        # Interaktif Bar Chart
+        # 1. Menghilangkan legend yang memakan tempat agar grafik lebih lebar
+        fig_dept.update_layout(showlegend=False)
+        
         klik_grafik = st.plotly_chart(fig_dept, use_container_width=True, on_select="rerun")
-    
+        
     with kanan:
         status_counts = df_selection["Status Kerjaan"].value_counts().reset_index()
         status_counts.columns = ['Status Kerjaan', 'Jumlah']
         
-        # MENGUBAH PIE CHART MENJADI HORIZONTAL BAR CHART
         fig_status = px.bar(status_counts, x="Jumlah", y="Status Kerjaan", orientation='h', 
                             title="Distribusi Status Pekerjaan", color="Status Kerjaan")
         
-        # Interaktif Bar Chart Status (Sekarang akan berfungsi!)
+        # 2. Menghilangkan legend yang memakan tempat agar grafik lebih lebar
+        fig_status.update_layout(showlegend=False)
+        
         klik_status = st.plotly_chart(fig_status, use_container_width=True, on_select="rerun")
 
     # --- LOGIKA INTERAKTIF (MUNCUL DI BAWAH GRAFIK) ---
