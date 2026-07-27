@@ -88,7 +88,7 @@ with tab1:
         dept_terpilih = klik_grafik["selection"]["points"][0]["x"]
         
         st.markdown("---")
-        st.markdown(f"### 🎯 Detail Area: **{dept_terpilih}** *(Hasil Klik Grafik)*")
+        st.markdown(f"### 🎯 Detail Area: **{dept_terpilih}**")
         
         # Memfilter data hanya untuk departemen yang diklik
         df_klik = df_selection[df_selection["Departemen"] == dept_terpilih]
