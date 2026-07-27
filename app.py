@@ -123,8 +123,8 @@ with tab3:
         c3.metric(label="Mitra Paling Dominan", value=mitra_terbanyak)
         
         st.markdown("#### 📑 Daftar Proyek Berjalan")
-        # Ditambahkan kolom Q di tabel agar informasi kuartalnya terlihat
-        kolom_penting = ["Q", "Site ID", "Mitra", "Deskripsi pekerjaan", "Status Kerjaan", "Nilai BOQ"]
+        # Menambahkan kolom Invoice ke dalam tabel
+        kolom_penting = ["Q", "Site ID", "Mitra", "Deskripsi pekerjaan", "Status Kerjaan", "Invoice", "Nilai BOQ"]
         kolom_tersedia = [col for col in kolom_penting if col in df_khusus.columns]
         
         st.dataframe(df_khusus[kolom_tersedia], use_container_width=True, hide_index=True)
