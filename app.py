@@ -24,22 +24,37 @@ def load_data():
     df["Departemen"] = df["Departemen"].fillna("Belum Ditentukan")
     df["Mitra"] = df["Mitra"].fillna("Belum Ditentukan")
     
+    # Tambahan: Mengatasi sel kosong di kolom Quarter (Q)
+    if "Q" in df.columns:
+        df["Q"] = df["Q"].fillna("Belum Ditentukan")
+        
     return df
 
 df = load_data()
 
 # 3. Sidebar Filter Utama (Mengubah seluruh halaman)
 st.sidebar.header("Filter Global")
+
+# --- TAMBAHAN BARU: FILTER QUARTER (Q) ---
+if "Q" in df.columns:
+    quarter = st.sidebar.multiselect("Pilih Quarter (Q):", options=df["Q"].unique(), default=df["Q"].unique())
+else:
+    quarter = []
+
 departemen = st.sidebar.multiselect("Pilih Departemen:", options=df["Departemen"].unique(), default=df["Departemen"].unique())
 mitra = st.sidebar.multiselect("Pilih Mitra:", options=df["Mitra"].unique(), default=df["Mitra"].unique())
 
-df_selection = df.query("Departemen == @departemen & Mitra == @mitra")
+# --- UPDATE LOGIKA FILTER ---
+if "Q" in df.columns:
+    df_selection = df.query("Q == @quarter & Departemen == @departemen & Mitra == @mitra")
+else:
+    df_selection = df.query("Departemen == @departemen & Mitra == @mitra")
 
 if df_selection.empty:
     st.warning("⚠️ Data tidak tersedia berdasarkan filter yang dipilih!")
     st.stop()
 
-# 4. Membuat Sistem Tab (Ditambah Tab ke-3)
+# 4. Membuat Sistem Tab
 tab1, tab2, tab3 = st.tabs(["📋 Executive Summary", "🔍 Detail & Analisis Lanjutan", "🏢 Profil Departemen (Search)"])
 
 # --- ISI TAB 1: SUMMARY ---
@@ -92,32 +107,24 @@ with tab3:
     st.subheader("🔍 Pencarian Spesifik Departemen")
     st.markdown("Ketik nama departemen pada kotak di bawah ini untuk membedah detail informasinya.")
     
-    # Membuat daftar nama departemen
     list_departemen = df_selection["Departemen"].dropna().unique().tolist()
-    
-    # Fitur pencarian otomatis
     pilih_dept = st.selectbox("Cari Departemen:", options=["-- Ketik / Pilih Departemen --"] + list_departemen)
     
-    # Jika pengguna sudah memilih sebuah departemen, tampilkan datanya
     if pilih_dept != "-- Ketik / Pilih Departemen --":
         st.markdown(f"### 🏢 Detail Area: **{pilih_dept}**")
         
-        # Saring data HANYA untuk departemen yang dicari
         df_khusus = df_selection[df_selection["Departemen"] == pilih_dept]
         
-        # Tampilkan metrik khusus departemen tersebut
         c1, c2, c3 = st.columns(3)
         c1.metric(label="Total Proyek di Area Ini", value=len(df_khusus))
         c2.metric(label="Total Serapan BOQ", value=f"Rp {int(df_khusus['Nilai BOQ'].sum()):,}")
         
-        # Mencari Mitra yang paling banyak memegang proyek di departemen ini
         mitra_terbanyak = df_khusus['Mitra'].mode()[0] if not df_khusus['Mitra'].empty else "-"
         c3.metric(label="Mitra Paling Dominan", value=mitra_terbanyak)
         
         st.markdown("#### 📑 Daftar Proyek Berjalan")
-        
-        # Menampilkan tabel bersih khusus departemen ini (menyembunyikan kolom tidak penting)
-        kolom_penting = ["Site ID", "Mitra", "Deskripsi pekerjaan", "Status Kerjaan", "Nilai BOQ"]
+        # Ditambahkan kolom Q di tabel agar informasi kuartalnya terlihat
+        kolom_penting = ["Q", "Site ID", "Mitra", "Deskripsi pekerjaan", "Status Kerjaan", "Nilai BOQ"]
         kolom_tersedia = [col for col in kolom_penting if col in df_khusus.columns]
         
         st.dataframe(df_khusus[kolom_tersedia], use_container_width=True, hide_index=True)
