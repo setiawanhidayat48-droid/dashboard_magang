@@ -122,20 +122,37 @@ with tab1:
 
 # --- ISI TAB 2: DETAIL ---
 with tab2:
+    st.subheader("Analisis Mitra & Kategori")
+    
+    # 1. DUA GRAFIK DI BAGIAN ATAS (TETAP DIPERTAHANKAN)
+    kiri2, kanan2 = st.columns(2)
+    with kiri2:
+        boq_by_mitra = df_selection.groupby("Mitra")["Nilai BOQ"].sum().reset_index()
+        fig_mitra = px.bar(boq_by_mitra, x="Mitra", y="Nilai BOQ", title="Nilai BOQ berdasarkan Mitra", color="Mitra")
+        st.plotly_chart(fig_mitra, use_container_width=True)
+        
+    with kanan2:
+        if "Kategory" in df_selection.columns:
+            kategori_counts = df_selection["Kategory"].value_counts().reset_index()
+            kategori_counts.columns = ['Kategori', 'Jumlah']
+            fig_kategori = px.bar(kategori_counts, x="Kategori", y="Jumlah", title="Jumlah Proyek per Kategori")
+            st.plotly_chart(fig_kategori, use_container_width=True)
+
+    # 2. GRAFIK SITE ID DI BAGIAN BAWAH (SEKARANG INTERAKTIF)
     st.markdown("---")
     st.subheader("Analisis Detail per Site ID")
     df_site = df_selection.dropna(subset=["Site ID"])
+    
     if not df_site.empty:
         boq_by_site = df_site.groupby("Site ID")["Nilai BOQ"].sum().reset_index().sort_values(by="Nilai BOQ", ascending=False)
         fig_site = px.bar(boq_by_site, x="Site ID", y="Nilai BOQ", title="Total Nilai BOQ berdasarkan Site ID", text_auto='.2s')
         fig_site.update_layout(xaxis_tickangle=-45)
         
-        # 1. PERUBAHAN: Menambahkan parameter on_select="rerun" ke dalam variabel klik_site
+        # Grafik penangkap klik
         klik_site = st.plotly_chart(fig_site, use_container_width=True, on_select="rerun")
         
-        # 2. TAMBAHAN LOGIKA INTERAKTIF: Memunculkan tabel saat batang grafik diklik
+        # Logika memunculkan tabel detail di bawah grafik Site ID
         if "selection" in klik_site and len(klik_site["selection"]["points"]) > 0:
-            # Mengambil nama Site ID dari sumbu X yang diklik
             site_terpilih = klik_site["selection"]["points"][0]["x"]
             
             st.markdown("---")
@@ -145,7 +162,7 @@ with tab2:
             df_site_klik = df_selection[df_selection["Site ID"] == site_terpilih]
             
             # Menyusun kolom tabel agar informatif
-            kolom_site = ["Departemen", "Mitra", "Deskripsi pekerjaan", "Status Kerjaan", "Invoice", "Nilai BOQ"]
+            kolom_site = ["Q", "Departemen", "Mitra", "Deskripsi pekerjaan", "Status Kerjaan", "Invoice", "Nilai BOQ"]
             kolom_tersedia_site = [col for col in kolom_site if col in df_site_klik.columns]
             
             st.dataframe(df_site_klik[kolom_tersedia_site], use_container_width=True, hide_index=True)
