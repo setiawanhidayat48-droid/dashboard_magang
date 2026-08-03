@@ -55,7 +55,8 @@ if df_selection.empty:
     st.stop()
 
 # 4. Membuat Sistem Tab
-tab1, tab2, tab3 = st.tabs(["📋 Executive Summary", "🔍 Detail & Analisis Lanjutan", "🏢 Profil Departemen (Search)"])
+# 4. Membuat Sistem Tab (Ditambah Tab ke-4)
+tab1, tab2, tab3, tab4 = st.tabs(["📋 Executive Summary", "🔍 Detail & Analisis Lanjutan", "🏢 Profil Departemen (Search)", "🗺️ Peta Persebaran Area"])
 
 # --- ISI TAB 1: SUMMARY ---
 with tab1:
@@ -193,3 +194,51 @@ with tab3:
         kolom_tersedia = [col for col in kolom_penting if col in df_khusus.columns]
         
         st.dataframe(df_khusus[kolom_tersedia], use_container_width=True, hide_index=True)
+
+# --- ISI TAB 4: PETA GEOSPASIAL ---
+with tab4:
+    st.subheader("🗺️ Peta Persebaran Proyek Regional")
+    st.markdown("Ukuran titik pada peta merepresentasikan besarnya serapan anggaran (Nilai BOQ) di area tersebut.")
+    
+    # 1. Membuat Kamus Koordinat Manual (Berdasarkan area operasionalmu)
+    koordinat = {
+        "Makassar": {"lat": -5.1476, "lon": 119.4327},
+        "Ternate": {"lat": 0.7893, "lon": 127.3616},
+        "Manado": {"lat": 1.4748, "lon": 124.8421},
+        "Palu": {"lat": -0.8917, "lon": 119.8707},
+        "Bone": {"lat": -4.5367, "lon": 120.3283},
+        "Parepare": {"lat": -4.0135, "lon": 119.6256},
+        "Kendari": {"lat": -3.9722, "lon": 122.5130},
+        "Sulawesi": {"lat": -2.0000, "lon": 120.5000} # Titik tengah representasi regional
+    }
+
+    # 2. Menyiapkan Data untuk Peta
+    # Mengelompokkan data proyek berdasarkan Departemen
+    df_peta = df_selection.groupby("Departemen")["Nilai BOQ"].sum().reset_index()
+    
+    # Memasukkan nilai lat dan lon ke dalam tabel menggunakan kamus di atas
+    df_peta["lat"] = df_peta["Departemen"].map(lambda x: koordinat.get(x, {}).get("lat"))
+    df_peta["lon"] = df_peta["Departemen"].map(lambda x: koordinat.get(x, {}).get("lon"))
+    
+    # Membuang data yang tidak memiliki koordinat (misal: "FBB" atau "Pusat")
+    df_peta = df_peta.dropna(subset=["lat", "lon"])
+    
+    if not df_peta.empty:
+        # 3. Menggambar Peta Interaktif menggunakan Plotly Mapbox
+        fig_map = px.scatter_mapbox(
+            df_peta, 
+            lat="lat", 
+            lon="lon", 
+            hover_name="Departemen", 
+            hover_data={"Nilai BOQ": ":,.0f", "lat": False, "lon": False}, # Format angka Rupiah
+            size="Nilai BOQ", # Semakin besar BOQ, semakin besar titiknya
+            color="Departemen",
+            zoom=4, 
+            height=600,
+            mapbox_style="carto-darkmatter" # Gaya peta gelap agar elegan
+        )
+        
+        fig_map.update_layout(margin={"r":0,"t":0,"l":0,"b":0})
+        st.plotly_chart(fig_map, use_container_width=True)
+    else:
+        st.info("Peta tidak dapat ditampilkan karena tidak ada koordinat area yang cocok dengan filter saat ini.")
